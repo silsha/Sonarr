@@ -15,7 +15,7 @@ namespace NzbDrone.Common.Cloud
             Services = new HttpRequestBuilder("https://services.sonarr.tv/v1/")
                 .CreateFactory();
 
-            SkyHookTvdb = new HttpRequestBuilder("https://skyhook.hallo-3c9.workers.dev/v1/tvdb/{route}/{language}/")
+            SkyHookTvdb = new HttpRequestBuilder("https://skyhook.hallo-3c9.workers.dev/v1/tmdb/{route}/{language}/")
                 .SetSegment("language", "en")
                 .CreateFactory();
         }
