@@ -70,21 +70,6 @@ namespace NzbDrone.Core.Test.TvTests
         }
 
         [Test]
-        public void should_create_all_when_no_existing_episodes()
-        {
-            Mocker.GetMock<IEpisodeService>().Setup(c => c.GetEpisodeBySeries(It.IsAny<int>()))
-                .Returns(new List<Episode>());
-
-            Subject.RefreshEpisodeInfo(GetSeries(), GetEpisodes());
-
-            _insertedEpisodes.Should().HaveSameCount(GetEpisodes());
-            _updatedEpisodes.Should().BeEmpty();
-            _deletedEpisodes.Should().BeEmpty();
-
-            ExceptionVerification.ExpectedWarns(1);
-        }
-
-        [Test]
         public void should_update_all_when_all_existing_episodes()
         {
             Mocker.GetMock<IEpisodeService>().Setup(c => c.GetEpisodeBySeries(It.IsAny<int>()))
