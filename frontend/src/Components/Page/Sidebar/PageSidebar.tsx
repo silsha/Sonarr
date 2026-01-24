@@ -1,4 +1,3 @@
-import classNames from 'classnames';
 import React, {
   useCallback,
   useEffect,
@@ -7,15 +6,20 @@ import React, {
   useState,
 } from 'react';
 import ReactDOM from 'react-dom';
-import { useDispatch } from 'react-redux';
 import { useLocation } from 'react-router';
 import QueueStatus from 'Activity/Queue/Status/QueueStatus';
+import {
+  setIsSidebarVisible,
+  useAppDimension,
+  useAppValue,
+} from 'App/appStore';
 import { IconName } from 'Components/Icon';
+import IconButton from 'Components/Link/IconButton';
+import Link from 'Components/Link/Link';
 import OverlayScroller from 'Components/Scroller/OverlayScroller';
 import Scroller from 'Components/Scroller/Scroller';
 import usePrevious from 'Helpers/Hooks/usePrevious';
 import { icons } from 'Helpers/Props';
-import { setIsSidebarVisible } from 'Store/Actions/appActions';
 import dimensions from 'Styles/Variables/dimensions';
 import HealthStatus from 'System/Status/Health/HealthStatus';
 import translate from 'Utilities/String/translate';
@@ -210,13 +214,9 @@ function hasActiveChildLink(link: SidebarItem, pathname: string) {
   });
 }
 
-interface PageSidebarProps {
-  isSmallScreen: boolean;
-  isSidebarVisible: boolean;
-}
-
-function PageSidebar({ isSidebarVisible, isSmallScreen }: PageSidebarProps) {
-  const dispatch = useDispatch();
+function PageSidebar() {
+  const isSidebarVisible = useAppValue('isSidebarVisible');
+  const isSmallScreen = useAppDimension('isSmallScreen');
   const location = useLocation();
   const sidebarRef = useRef(null);
   const touchStartX = useRef<number | null>(null);
@@ -229,10 +229,6 @@ function PageSidebar({ isSidebarVisible, isSmallScreen }: PageSidebarProps) {
   }>({
     transition: 'none',
     transform: isSidebarVisible ? 0 : SIDEBAR_WIDTH * -1,
-  });
-  const [sidebarStyle, setSidebarStyle] = useState({
-    top: dimensions.headerHeight,
-    height: `${window.innerHeight - HEADER_HEIGHT}px`,
   });
 
   const urlBase = window.Sonarr.urlBase;
@@ -289,31 +285,15 @@ function PageSidebar({ isSidebarVisible, isSmallScreen }: PageSidebarProps) {
       ) {
         event.preventDefault();
         event.stopPropagation();
-        dispatch(setIsSidebarVisible({ isSidebarVisible: false }));
+        setIsSidebarVisible({ isSidebarVisible: false });
       }
     },
-    [isSidebarVisible, dispatch]
+    [isSidebarVisible]
   );
 
   const handleItemPress = useCallback(() => {
-    dispatch(setIsSidebarVisible({ isSidebarVisible: false }));
-  }, [dispatch]);
-
-  const handleWindowScroll = useCallback(() => {
-    const windowScroll =
-      window.scrollY == null
-        ? document.documentElement.scrollTop
-        : window.scrollY;
-    const sidebarTop = Math.max(HEADER_HEIGHT - windowScroll, 0);
-    const sidebarHeight = window.innerHeight - sidebarTop;
-
-    if (isSmallScreen) {
-      setSidebarStyle({
-        top: `${sidebarTop}px`,
-        height: `${sidebarHeight}px`,
-      });
-    }
-  }, [isSmallScreen]);
+    setIsSidebarVisible({ isSidebarVisible: false });
+  }, []);
 
   const handleTouchStart = useCallback(
     (event: TouchEvent) => {
@@ -359,44 +339,50 @@ function PageSidebar({ isSidebarVisible, isSmallScreen }: PageSidebarProps) {
     });
   }, []);
 
-  const handleTouchEnd = useCallback((event: TouchEvent) => {
-    const touches = event.changedTouches;
-    const currentTouch = touches[0].pageX;
+  const handleTouchEnd = useCallback(
+    (event: TouchEvent) => {
+      const touches = event.changedTouches;
+      const currentTouch = touches[0].pageX;
 
-    if (!touchStartX.current) {
-      return;
-    }
+      if (!touchStartX.current) {
+        return;
+      }
 
-    if (currentTouch > touchStartX.current && currentTouch > 50) {
-      setSidebarTransform({
-        transition: 'none',
-        transform: 0,
-      });
-    } else if (currentTouch < touchStartX.current && currentTouch < 80) {
-      setSidebarTransform({
-        transition: 'transform 50ms ease-in-out',
-        transform: SIDEBAR_WIDTH * -1,
-      });
-    } else {
-      setSidebarTransform({
-        transition: 'none',
-        transform: 0,
-      });
-    }
+      if (currentTouch > touchStartX.current && currentTouch > 50) {
+        setSidebarTransform({
+          transition: 'none',
+          transform: 0,
+        });
+      } else if (currentTouch < touchStartX.current && currentTouch < 80) {
+        setSidebarTransform({
+          transition: 'transform 50ms ease-in-out',
+          transform: SIDEBAR_WIDTH * -1,
+        });
+      } else {
+        setSidebarTransform({
+          transition: 'none',
+          transform: isSidebarVisible ? 0 : SIDEBAR_WIDTH * -1,
+        });
+      }
 
-    touchStartX.current = null;
-    touchStartY.current = null;
-  }, []);
+      touchStartX.current = null;
+      touchStartY.current = null;
+    },
+    [isSidebarVisible]
+  );
 
   const handleTouchCancel = useCallback(() => {
     touchStartX.current = null;
     touchStartY.current = null;
   }, []);
 
+  const handleSidebarClosePress = useCallback(() => {
+    setIsSidebarVisible({ isSidebarVisible: false });
+  }, []);
+
   useEffect(() => {
     if (isSmallScreen) {
       window.addEventListener('click', handleWindowClick, { capture: true });
-      window.addEventListener('scroll', handleWindowScroll);
       window.addEventListener('touchstart', handleTouchStart);
       window.addEventListener('touchmove', handleTouchMove);
       window.addEventListener('touchend', handleTouchEnd);
@@ -405,7 +391,6 @@ function PageSidebar({ isSidebarVisible, isSmallScreen }: PageSidebarProps) {
 
     return () => {
       window.removeEventListener('click', handleWindowClick, { capture: true });
-      window.removeEventListener('scroll', handleWindowScroll);
       window.removeEventListener('touchstart', handleTouchStart);
       window.removeEventListener('touchmove', handleTouchMove);
       window.removeEventListener('touchend', handleTouchEnd);
@@ -414,7 +399,6 @@ function PageSidebar({ isSidebarVisible, isSmallScreen }: PageSidebarProps) {
   }, [
     isSmallScreen,
     handleWindowClick,
-    handleWindowScroll,
     handleTouchStart,
     handleTouchMove,
     handleTouchEnd,
@@ -428,14 +412,14 @@ function PageSidebar({ isSidebarVisible, isSmallScreen }: PageSidebarProps) {
         transform: isSidebarVisible ? 0 : SIDEBAR_WIDTH * -1,
       });
     } else if (sidebarTransform.transform === 0 && !isSidebarVisible) {
-      dispatch(setIsSidebarVisible({ isSidebarVisible: true }));
+      setIsSidebarVisible({ isSidebarVisible: true });
     } else if (
       sidebarTransform.transform === -SIDEBAR_WIDTH &&
       isSidebarVisible
     ) {
-      dispatch(setIsSidebarVisible({ isSidebarVisible: false }));
+      setIsSidebarVisible({ isSidebarVisible: false });
     }
-  }, [sidebarTransform, isSidebarVisible, wasSidebarVisible, dispatch]);
+  }, [sidebarTransform, isSidebarVisible, wasSidebarVisible]);
 
   const containerStyle = useMemo(() => {
     if (!isSmallScreen) {
@@ -453,13 +437,37 @@ function PageSidebar({ isSidebarVisible, isSmallScreen }: PageSidebarProps) {
   return (
     <div
       ref={sidebarRef}
-      className={classNames(styles.sidebarContainer)}
+      className={styles.sidebarContainer}
       style={containerStyle}
     >
+      {isSmallScreen ? (
+        <div className={styles.sidebarHeader}>
+          <div className={styles.logoContainer}>
+            <Link className={styles.logoLink} to="/">
+              <img
+                className={styles.logo}
+                src={`${window.Sonarr.urlBase}/Content/Images/logo.svg`}
+                alt="Sonarr Logo"
+              />
+            </Link>
+          </div>
+
+          <IconButton
+            className={styles.sidebarCloseButton}
+            name={icons.CLOSE}
+            aria-label={translate('Close')}
+            size={20}
+            onPress={handleSidebarClosePress}
+          />
+        </div>
+      ) : null}
+
       <ScrollerComponent
         className={styles.sidebar}
         scrollDirection="vertical"
-        style={sidebarStyle}
+        style={{
+          height: `${window.innerHeight - HEADER_HEIGHT}px`,
+        }}
       >
         <div>
           {LINKS.map((link) => {

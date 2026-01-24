@@ -1,6 +1,5 @@
 import AppSectionState, {
   AppSectionDeleteState,
-  AppSectionItemSchemaState,
   AppSectionItemState,
   AppSectionListState,
   AppSectionSaveState,
@@ -18,18 +17,12 @@ import ImportListExclusion from 'typings/ImportListExclusion';
 import ImportListOptionsSettings from 'typings/ImportListOptionsSettings';
 import Indexer from 'typings/Indexer';
 import IndexerFlag from 'typings/IndexerFlag';
-import Notification from 'typings/Notification';
-import QualityDefinition from 'typings/QualityDefinition';
-import QualityProfile from 'typings/QualityProfile';
 import DownloadClientOptions from 'typings/Settings/DownloadClientOptions';
 import General from 'typings/Settings/General';
 import IndexerOptions from 'typings/Settings/IndexerOptions';
 import MediaManagement from 'typings/Settings/MediaManagement';
 import NamingConfig from 'typings/Settings/NamingConfig';
 import NamingExample from 'typings/Settings/NamingExample';
-import ReleaseProfile from 'typings/Settings/ReleaseProfile';
-import RemotePathMapping from 'typings/Settings/RemotePathMapping';
-import UiSettings from 'typings/Settings/UiSettings';
 import MetadataAppState from './MetadataAppState';
 
 type Presets<T> = T & {
@@ -98,32 +91,6 @@ export interface IndexerAppState
   isTestingAll: boolean;
 }
 
-export interface NotificationAppState
-  extends AppSectionState<Notification>,
-    AppSectionDeleteState,
-    AppSectionSaveState,
-    AppSectionSchemaState<Presets<Notification>> {}
-
-export interface QualityDefinitionsAppState
-  extends AppSectionState<QualityDefinition>,
-    AppSectionSaveState {
-  pendingChanges: {
-    [key: number]: Partial<QualityProfile>;
-  };
-}
-
-export interface QualityProfilesAppState
-  extends AppSectionState<QualityProfile>,
-    AppSectionItemSchemaState<QualityProfile>,
-    AppSectionDeleteState,
-    AppSectionSaveState {}
-
-export interface ReleaseProfilesAppState
-  extends AppSectionState<ReleaseProfile>,
-    AppSectionSaveState {
-  pendingChanges: Partial<ReleaseProfile>;
-}
-
 export interface CustomFormatAppState
   extends AppSectionState<CustomFormat>,
     AppSectionDeleteState,
@@ -147,19 +114,10 @@ export interface ImportListExclusionsSettingsAppState
   pendingChanges: Partial<ImportListExclusion>;
 }
 
-export interface RemotePathMappingsAppState
-  extends AppSectionState<RemotePathMapping>,
-    AppSectionDeleteState,
-    AppSectionSaveState {
-  pendingChanges: Partial<RemotePathMapping>;
-}
-
 export type IndexerFlagSettingsAppState = AppSectionState<IndexerFlag>;
 export type LanguageSettingsAppState = AppSectionState<Language>;
-export type UiSettingsAppState = AppSectionItemState<UiSettings>;
 
 interface SettingsAppState {
-  advancedSettings: boolean;
   autoTaggings: AutoTaggingAppState;
   autoTaggingSpecifications: AutoTaggingSpecificationAppState;
   customFormats: CustomFormatAppState;
@@ -179,12 +137,6 @@ interface SettingsAppState {
   metadata: MetadataAppState;
   naming: NamingAppState;
   namingExamples: NamingExamplesAppState;
-  notifications: NotificationAppState;
-  qualityDefinitions: QualityDefinitionsAppState;
-  qualityProfiles: QualityProfilesAppState;
-  releaseProfiles: ReleaseProfilesAppState;
-  remotePathMappings: RemotePathMappingsAppState;
-  ui: UiSettingsAppState;
 }
 
 export default SettingsAppState;

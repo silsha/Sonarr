@@ -1,13 +1,11 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
+import { useQueueItemForEpisode } from 'Activity/Queue/Details/QueueDetailsProvider';
 import QueueDetails from 'Activity/Queue/QueueDetails';
 import Icon from 'Components/Icon';
 import ProgressBar from 'Components/ProgressBar';
-import Episode from 'Episode/Episode';
 import useEpisode, { EpisodeEntity } from 'Episode/useEpisode';
-import useEpisodeFile from 'EpisodeFile/useEpisodeFile';
+import { useEpisodeFile } from 'EpisodeFile/EpisodeFileProvider';
 import { icons, kinds, sizes } from 'Helpers/Props';
-import { createQueueItemSelectorForHook } from 'Store/Selectors/createQueueItemSelector';
 import isBefore from 'Utilities/Date/isBefore';
 import translate from 'Utilities/String/translate';
 import EpisodeQuality from './EpisodeQuality';
@@ -24,23 +22,23 @@ function EpisodeStatus({
   episodeEntity = 'episodes',
   episodeFileId,
 }: EpisodeStatusProps) {
-  const {
-    airDateUtc,
-    monitored,
-    grabbed = false,
-  } = useEpisode(episodeId, episodeEntity) as Episode;
-
-  const queueItem = useSelector(createQueueItemSelectorForHook(episodeId));
+  const episode = useEpisode(episodeId, episodeEntity);
+  const queueItem = useQueueItemForEpisode(episodeId);
   const episodeFile = useEpisodeFile(episodeFileId);
 
+  const { airDateUtc, grabbed, monitored } = episode || {};
   const hasEpisodeFile = !!episodeFile;
   const isQueued = !!queueItem;
   const hasAired = isBefore(airDateUtc);
 
-  if (isQueued) {
-    const { sizeleft, size } = queueItem;
+  if (!episode) {
+    return null;
+  }
 
-    const progress = size ? 100 - (sizeleft / size) * 100 : 0;
+  if (isQueued) {
+    const { sizeLeft, size } = queueItem;
+
+    const progress = size ? 100 - (sizeLeft / size) * 100 : 0;
 
     return (
       <div className={styles.center}>

@@ -1,6 +1,6 @@
 import classNames from 'classnames';
 import React, { useCallback, useMemo, useState } from 'react';
-import SelectInput from 'Components/Form/SelectInput';
+import SelectInput, { SelectInputOption } from 'Components/Form/SelectInput';
 import Icon from 'Components/Icon';
 import Link from 'Components/Link/Link';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
@@ -14,10 +14,10 @@ interface TablePagerProps {
   totalPages?: number;
   totalRecords?: number;
   isFetching?: boolean;
-  onFirstPagePress: () => void;
-  onPreviousPagePress: () => void;
-  onNextPagePress: () => void;
-  onLastPagePress: () => void;
+  onFirstPagePress?: () => void;
+  onPreviousPagePress?: () => void;
+  onNextPagePress?: () => void;
+  onLastPagePress?: () => void;
   onPageSelect: (page: number) => void;
 }
 
@@ -26,10 +26,6 @@ function TablePager({
   totalPages,
   totalRecords = 0,
   isFetching,
-  onFirstPagePress,
-  onPreviousPagePress,
-  onNextPagePress,
-  onLastPagePress,
   onPageSelect,
 }: TablePagerProps) {
   const [isShowingPageSelect, setIsShowingPageSelect] = useState(false);
@@ -38,7 +34,7 @@ function TablePager({
   const isLastPage = page === totalPages;
 
   const pages = useMemo(() => {
-    return Array.from(new Array(totalPages), (_x, i) => {
+    return Array.from(new Array(totalPages), (_x, i): SelectInputOption => {
       const pageNumber = i + 1;
 
       return {
@@ -64,6 +60,34 @@ function TablePager({
     setIsShowingPageSelect(false);
   }, []);
 
+  const handleFirstPagePress = useCallback(() => {
+    onPageSelect(1);
+  }, [onPageSelect]);
+
+  const onPreviousPagePress = useCallback(() => {
+    if (!page) {
+      return;
+    }
+
+    onPageSelect(page - 1);
+  }, [onPageSelect, page]);
+
+  const onNextPagePress = useCallback(() => {
+    if (!page) {
+      return;
+    }
+
+    onPageSelect(page + 1);
+  }, [onPageSelect, page]);
+
+  const onLastPagePress = useCallback(() => {
+    if (!totalPages) {
+      return;
+    }
+
+    onPageSelect(totalPages);
+  }, [onPageSelect, totalPages]);
+
   if (!page) {
     return null;
   }
@@ -84,7 +108,7 @@ function TablePager({
               isFirstPage && styles.disabledPageButton
             )}
             isDisabled={isFirstPage}
-            onPress={onFirstPagePress}
+            onPress={handleFirstPagePress}
           >
             <Icon name={icons.PAGE_FIRST} />
           </Link>

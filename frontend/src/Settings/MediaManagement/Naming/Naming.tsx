@@ -9,9 +9,11 @@ import FormGroup from 'Components/Form/FormGroup';
 import FormInputButton from 'Components/Form/FormInputButton';
 import FormInputGroup from 'Components/Form/FormInputGroup';
 import FormLabel from 'Components/Form/FormLabel';
+import { EnhancedSelectInputValue } from 'Components/Form/Select/EnhancedSelectInput';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import useModalOpenState from 'Helpers/Hooks/useModalOpenState';
 import { inputTypes, kinds, sizes } from 'Helpers/Props';
+import { useShowAdvancedSettings } from 'Settings/advancedSettingsStore';
 import { clearPendingChanges } from 'Store/Actions/baseActions';
 import {
   fetchNamingExamples,
@@ -29,12 +31,10 @@ const SECTION = 'naming';
 
 function createNamingSelector() {
   return createSelector(
-    (state: AppState) => state.settings.advancedSettings,
     (state: AppState) => state.settings.namingExamples,
     createSettingsSectionSelector(SECTION),
-    (advancedSettings, namingExamples, sectionSettings) => {
+    (namingExamples, sectionSettings) => {
       return {
-        advancedSettings,
         examples: namingExamples.item,
         examplesPopulated: namingExamples.isPopulated,
         ...sectionSettings,
@@ -61,8 +61,8 @@ interface NamingModalOptions {
 }
 
 function Naming() {
+  const advancedSettings = useShowAdvancedSettings();
   const {
-    advancedSettings,
     isFetching,
     error,
     settings,
@@ -169,7 +169,7 @@ function Naming() {
   const replaceIllegalCharacters =
     hasSettings && settings.replaceIllegalCharacters.value;
 
-  const multiEpisodeStyleOptions = [
+  const multiEpisodeStyleOptions: EnhancedSelectInputValue<number>[] = [
     { key: 0, value: translate('Extend'), hint: 'S01E01-02-03' },
     { key: 1, value: translate('Duplicate'), hint: 'S01E01.S01E02' },
     { key: 2, value: translate('Repeat'), hint: 'S01E01E02E03' },
@@ -178,7 +178,7 @@ function Naming() {
     { key: 5, value: translate('PrefixedRange'), hint: 'S01E01-E03' },
   ];
 
-  const colonReplacementOptions = [
+  const colonReplacementOptions: EnhancedSelectInputValue<number>[] = [
     { key: 0, value: translate('Delete') },
     { key: 1, value: translate('ReplaceWithDash') },
     { key: 2, value: translate('ReplaceWithSpaceDash') },

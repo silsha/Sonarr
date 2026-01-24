@@ -1,7 +1,6 @@
-import React, { useCallback, useEffect } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
-import AppState from 'App/State/AppState';
-import * as commandNames from 'Commands/commandNames';
+import React, { useCallback } from 'react';
+import CommandNames from 'Commands/CommandNames';
+import { useCommandExecuting, useExecuteCommand } from 'Commands/useCommands';
 import Alert from 'Components/Alert';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import FilterMenu from 'Components/Menu/FilterMenu';
@@ -14,106 +13,82 @@ import Table from 'Components/Table/Table';
 import TableBody from 'Components/Table/TableBody';
 import TableOptionsModalWrapper from 'Components/Table/TableOptions/TableOptionsModalWrapper';
 import TablePager from 'Components/Table/TablePager';
-import usePaging from 'Components/Table/usePaging';
-import useCurrentPage from 'Helpers/Hooks/useCurrentPage';
 import { align, icons, kinds } from 'Helpers/Props';
-import { executeCommand } from 'Store/Actions/commandActions';
-import {
-  fetchLogs,
-  gotoLogsFirstPage,
-  gotoLogsPage,
-  setLogsFilter,
-  setLogsSort,
-  setLogsTableOption,
-} from 'Store/Actions/systemActions';
-import createCommandExecutingSelector from 'Store/Selectors/createCommandExecutingSelector';
+import { SortDirection } from 'Helpers/Props/sortDirections';
 import { TableOptionsChangePayload } from 'typings/Table';
 import translate from 'Utilities/String/translate';
+import {
+  setEventOption,
+  setEventOptions,
+  setEventSort,
+  useEventOptions,
+} from './eventOptionsStore';
 import LogsTableRow from './LogsTableRow';
+import useEvents, { useFilters } from './useEvents';
 
 function LogsTable() {
-  const dispatch = useDispatch();
-  const requestCurrentPage = useCurrentPage();
-
+  const executeCommand = useExecuteCommand();
   const {
-    isFetching,
-    isPopulated,
-    error,
-    items,
-    columns,
-    page,
-    pageSize,
+    records,
     totalPages,
     totalRecords,
-    sortKey,
-    sortDirection,
-    filters,
-    selectedFilterKey,
-  } = useSelector((state: AppState) => state.system.logs);
-
-  const isClearLogExecuting = useSelector(
-    createCommandExecutingSelector(commandNames.CLEAR_LOGS)
-  );
-
-  const {
-    handleFirstPagePress,
-    handlePreviousPagePress,
-    handleNextPagePress,
-    handleLastPagePress,
-    handlePageSelect,
-  } = usePaging({
+    error,
+    isFetching,
+    isFetched,
+    isLoading,
     page,
-    totalPages,
-    gotoPage: gotoLogsPage,
-  });
+    goToPage,
+  } = useEvents();
+
+  const { columns, pageSize, sortKey, sortDirection, selectedFilterKey } =
+    useEventOptions();
+
+  const filters = useFilters();
+
+  const isClearLogExecuting = useCommandExecuting(CommandNames.ClearLog);
 
   const handleFilterSelect = useCallback(
     (selectedFilterKey: string | number) => {
-      dispatch(setLogsFilter({ selectedFilterKey }));
+      setEventOption('selectedFilterKey', selectedFilterKey);
     },
-    [dispatch]
+    []
   );
 
   const handleSortPress = useCallback(
-    (sortKey: string) => {
-      dispatch(setLogsSort({ sortKey }));
+    (sortKey: string, sortDirection?: SortDirection) => {
+      setEventSort({
+        sortKey,
+        sortDirection,
+      });
     },
-    [dispatch]
+    []
   );
 
   const handleTableOptionChange = useCallback(
     (payload: TableOptionsChangePayload) => {
-      dispatch(setLogsTableOption(payload));
+      setEventOptions(payload);
 
       if (payload.pageSize) {
-        dispatch(gotoLogsFirstPage({ page: 1 }));
+        goToPage(1);
       }
     },
-    [dispatch]
+    [goToPage]
   );
 
   const handleRefreshPress = useCallback(() => {
-    dispatch(gotoLogsFirstPage());
-  }, [dispatch]);
+    goToPage(1);
+  }, [goToPage]);
 
   const handleClearLogsPress = useCallback(() => {
-    dispatch(
-      executeCommand({
-        name: commandNames.CLEAR_LOGS,
-        commandFinished: () => {
-          dispatch(gotoLogsFirstPage());
-        },
-      })
+    executeCommand(
+      {
+        name: CommandNames.ClearLog,
+      },
+      () => {
+        goToPage(1);
+      }
     );
-  }, [dispatch]);
-
-  useEffect(() => {
-    if (requestCurrentPage) {
-      dispatch(fetchLogs());
-    } else {
-      dispatch(gotoLogsFirstPage({ page: 1 }));
-    }
-  }, [requestCurrentPage, dispatch]);
+  }, [executeCommand, goToPage]);
 
   return (
     <PageContent title={translate('Logs')}>
@@ -159,13 +134,13 @@ function LogsTable() {
       </PageToolbar>
 
       <PageContentBody>
-        {isFetching && !isPopulated ? <LoadingIndicator /> : null}
+        {isLoading ? <LoadingIndicator /> : null}
 
-        {isPopulated && !error && !items.length ? (
+        {isFetched && !error && !records.length ? (
           <Alert kind={kinds.INFO}>{translate('NoEventsFound')}</Alert>
         ) : null}
 
-        {isPopulated && !error && items.length ? (
+        {isFetched && !error && records.length ? (
           <div>
             <Table
               columns={columns}
@@ -176,7 +151,7 @@ function LogsTable() {
               onSortPress={handleSortPress}
             >
               <TableBody>
-                {items.map((item) => {
+                {records.map((item) => {
                   return (
                     <LogsTableRow key={item.id} columns={columns} {...item} />
                   );
@@ -189,11 +164,7 @@ function LogsTable() {
               totalPages={totalPages}
               totalRecords={totalRecords}
               isFetching={isFetching}
-              onFirstPagePress={handleFirstPagePress}
-              onPreviousPagePress={handlePreviousPagePress}
-              onNextPagePress={handleNextPagePress}
-              onLastPagePress={handleLastPagePress}
-              onPageSelect={handlePageSelect}
+              onPageSelect={goToPage}
             />
           </div>
         ) : null}

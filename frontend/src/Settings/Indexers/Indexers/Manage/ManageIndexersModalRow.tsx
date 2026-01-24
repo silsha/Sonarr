@@ -1,4 +1,5 @@
 import React, { useCallback } from 'react';
+import { useSelect } from 'App/Select/SelectContext';
 import Label from 'Components/Label';
 import SeriesTagList from 'Components/SeriesTagList';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
@@ -6,6 +7,7 @@ import TableSelectCell from 'Components/Table/Cells/TableSelectCell';
 import Column from 'Components/Table/Column';
 import TableRow from 'Components/Table/TableRow';
 import { kinds } from 'Helpers/Props';
+import Indexer from 'typings/Indexer';
 import { SelectStateInputProps } from 'typings/props';
 import translate from 'Utilities/String/translate';
 import styles from './ManageIndexersModalRow.css';
@@ -17,34 +19,37 @@ interface ManageIndexersModalRowProps {
   enableAutomaticSearch: boolean;
   enableInteractiveSearch: boolean;
   priority: number;
+  seasonSearchMaximumSingleEpisodeAge: number;
   implementation: string;
   tags: number[];
   columns: Column[];
-  isSelected?: boolean;
-  onSelectedChange(result: SelectStateInputProps): void;
 }
 
 function ManageIndexersModalRow(props: ManageIndexersModalRowProps) {
   const {
     id,
-    isSelected,
     name,
     enableRss,
     enableAutomaticSearch,
     enableInteractiveSearch,
     priority,
+    seasonSearchMaximumSingleEpisodeAge,
     implementation,
     tags,
-    onSelectedChange,
   } = props;
 
+  const { toggleSelected, useIsSelected } = useSelect<Indexer>();
+  const isSelected = useIsSelected(id);
+
   const onSelectedChangeWrapper = useCallback(
-    (result: SelectStateInputProps) => {
-      onSelectedChange({
-        ...result,
+    ({ id, value, shiftKey }: SelectStateInputProps) => {
+      toggleSelected({
+        id,
+        isSelected: value,
+        shiftKey,
       });
     },
-    [onSelectedChange]
+    [toggleSelected]
   );
 
   return (
@@ -89,6 +94,10 @@ function ManageIndexersModalRow(props: ManageIndexersModalRowProps) {
       </TableRowCell>
 
       <TableRowCell className={styles.priority}>{priority}</TableRowCell>
+
+      <TableRowCell className={styles.seasonSearchMaximumSingleEpisodeAge}>
+        {seasonSearchMaximumSingleEpisodeAge}
+      </TableRowCell>
 
       <TableRowCell className={styles.tags}>
         <SeriesTagList tags={tags} />

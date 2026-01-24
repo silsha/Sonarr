@@ -23,6 +23,7 @@ namespace NzbDrone.Core.Tv
         List<Episode> FindEpisodesBySceneNumbering(int seriesId, int sceneAbsoluteEpisodeNumber);
         Episode FindEpisode(int seriesId, string date, int? part);
         List<Episode> GetEpisodeBySeries(int seriesId);
+        List<Episode> GetEpisodesBySeries(List<int> seriesIds);
         List<Episode> GetEpisodesBySeason(int seriesId, int seasonNumber);
         List<Episode> GetEpisodesBySceneSeason(int seriesId, int sceneSeasonNumber);
         List<Episode> EpisodesWithFiles(int seriesId);
@@ -33,7 +34,7 @@ namespace NzbDrone.Core.Tv
         void SetMonitored(IEnumerable<int> ids, bool monitored);
         void UpdateEpisodes(List<Episode> episodes);
         void UpdateLastSearchTime(List<Episode> episodes);
-        List<Episode> EpisodesBetweenDates(DateTime start, DateTime end, bool includeUnmonitored);
+        List<Episode> EpisodesBetweenDates(DateTime start, DateTime end, bool includeUnmonitored, bool includeSpecials);
         void InsertMany(List<Episode> episodes);
         void UpdateMany(List<Episode> episodes);
         void DeleteMany(List<Episode> episodes);
@@ -97,6 +98,11 @@ namespace NzbDrone.Core.Tv
         public List<Episode> GetEpisodeBySeries(int seriesId)
         {
             return _episodeRepository.GetEpisodes(seriesId).ToList();
+        }
+
+        public List<Episode> GetEpisodesBySeries(List<int> seriesIds)
+        {
+            return _episodeRepository.GetEpisodesBySeriesIds(seriesIds).ToList();
         }
 
         public List<Episode> GetEpisodesBySeason(int seriesId, int seasonNumber)
@@ -197,9 +203,9 @@ namespace NzbDrone.Core.Tv
             _episodeRepository.SetFields(episodes, e => e.LastSearchTime);
         }
 
-        public List<Episode> EpisodesBetweenDates(DateTime start, DateTime end, bool includeUnmonitored)
+        public List<Episode> EpisodesBetweenDates(DateTime start, DateTime end, bool includeUnmonitored, bool includeSpecials)
         {
-            var episodes = _episodeRepository.EpisodesBetweenDates(start.ToUniversalTime(), end.ToUniversalTime(), includeUnmonitored);
+            var episodes = _episodeRepository.EpisodesBetweenDates(start.ToUniversalTime(), end.ToUniversalTime(), includeUnmonitored, includeSpecials);
 
             return episodes;
         }

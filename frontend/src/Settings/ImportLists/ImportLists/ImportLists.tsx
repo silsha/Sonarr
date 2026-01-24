@@ -6,8 +6,10 @@ import FieldSet from 'Components/FieldSet';
 import Icon from 'Components/Icon';
 import PageSectionContent from 'Components/Page/PageSectionContent';
 import { icons } from 'Helpers/Props';
-import { fetchRootFolders } from 'Store/Actions/rootFolderActions';
-import { fetchImportLists } from 'Store/Actions/settingsActions';
+import {
+  cloneImportList,
+  fetchImportLists,
+} from 'Store/Actions/settingsActions';
 import createSortedSectionSelector from 'Store/Selectors/createSortedSectionSelector';
 import ImportListModel from 'typings/ImportList';
 import sortByProp from 'Utilities/Array/sortByProp';
@@ -49,9 +51,16 @@ function ImportLists() {
     setIsEditImportListModalOpen(false);
   }, []);
 
+  const handleCloneImportListPress = useCallback(
+    (id: number) => {
+      dispatch(cloneImportList({ id }));
+      setIsEditImportListModalOpen(true);
+    },
+    [dispatch]
+  );
+
   useEffect(() => {
     dispatch(fetchImportLists());
-    dispatch(fetchRootFolders());
   }, [dispatch]);
 
   return (
@@ -64,7 +73,13 @@ function ImportLists() {
       >
         <div className={styles.lists}>
           {items.map((item) => {
-            return <ImportList key={item.id} {...item} />;
+            return (
+              <ImportList
+                key={item.id}
+                {...item}
+                onCloneImportListPress={handleCloneImportListPress}
+              />
+            );
           })}
 
           <Card className={styles.addList} onPress={handleAddImportListPress}>

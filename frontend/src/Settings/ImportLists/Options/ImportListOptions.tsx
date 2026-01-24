@@ -6,9 +6,10 @@ import Form from 'Components/Form/Form';
 import FormGroup from 'Components/Form/FormGroup';
 import FormInputGroup from 'Components/Form/FormInputGroup';
 import FormLabel from 'Components/Form/FormLabel';
+import { EnhancedSelectInputValue } from 'Components/Form/Select/EnhancedSelectInput';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
-import useShowAdvancedSettings from 'Helpers/Hooks/useShowAdvancedSettings';
 import { inputTypes, kinds } from 'Helpers/Props';
+import { useShowAdvancedSettings } from 'Settings/advancedSettingsStore';
 import { clearPendingChanges } from 'Store/Actions/baseActions';
 import {
   fetchImportListOptions,
@@ -19,7 +20,7 @@ import createSettingsSectionSelector from 'Store/Selectors/createSettingsSection
 import translate from 'Utilities/String/translate';
 
 const SECTION = 'importListOptions';
-const cleanLibraryLevelOptions = [
+const cleanLibraryLevelOptions: EnhancedSelectInputValue<string>[] = [
   {
     key: 'disabled',
     get value() {

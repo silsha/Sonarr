@@ -7,12 +7,13 @@ import Form from 'Components/Form/Form';
 import FormGroup from 'Components/Form/FormGroup';
 import FormInputGroup from 'Components/Form/FormInputGroup';
 import FormLabel from 'Components/Form/FormLabel';
+import { EnhancedSelectInputValue } from 'Components/Form/Select/EnhancedSelectInput';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
-import useShowAdvancedSettings from 'Helpers/Hooks/useShowAdvancedSettings';
 import { inputTypes, kinds, sizes } from 'Helpers/Props';
 import RootFolders from 'RootFolder/RootFolders';
+import { useShowAdvancedSettings } from 'Settings/advancedSettingsStore';
 import SettingsToolbar from 'Settings/SettingsToolbar';
 import { clearPendingChanges } from 'Store/Actions/baseActions';
 import {
@@ -22,7 +23,7 @@ import {
   setMediaManagementSettingsValue,
 } from 'Store/Actions/settingsActions';
 import createSettingsSectionSelector from 'Store/Selectors/createSettingsSectionSelector';
-import useIsWindows from 'System/useIsWindows';
+import { useIsWindows } from 'System/Status/useSystemStatus';
 import { InputChanged } from 'typings/inputs';
 import isEmpty from 'Utilities/Object/isEmpty';
 import translate from 'Utilities/String/translate';
@@ -31,7 +32,7 @@ import AddRootFolder from './RootFolder/AddRootFolder';
 
 const SECTION = 'mediaManagement';
 
-const episodeTitleRequiredOptions = [
+const episodeTitleRequiredOptions: EnhancedSelectInputValue<string>[] = [
   {
     key: 'always',
     get value() {
@@ -52,7 +53,7 @@ const episodeTitleRequiredOptions = [
   },
 ];
 
-const rescanAfterRefreshOptions = [
+const rescanAfterRefreshOptions: EnhancedSelectInputValue<string>[] = [
   {
     key: 'always',
     get value() {
@@ -73,7 +74,7 @@ const rescanAfterRefreshOptions = [
   },
 ];
 
-const downloadPropersAndRepacksOptions = [
+const downloadPropersAndRepacksOptions: EnhancedSelectInputValue<string>[] = [
   {
     key: 'preferAndUpgrade',
     get value() {
@@ -94,7 +95,7 @@ const downloadPropersAndRepacksOptions = [
   },
 ];
 
-const fileDateOptions = [
+const fileDateOptions: EnhancedSelectInputValue<string>[] = [
   {
     key: 'none',
     get value() {
@@ -111,6 +112,27 @@ const fileDateOptions = [
     key: 'utcAirDate',
     get value() {
       return translate('UtcAirDate');
+    },
+  },
+];
+
+const seasonPackUpgradeOptions: EnhancedSelectInputValue<string>[] = [
+  {
+    key: 'all',
+    get value() {
+      return translate('All');
+    },
+  },
+  {
+    key: 'threshold',
+    get value() {
+      return translate('Threshold');
+    },
+  },
+  {
+    key: 'any',
+    get value() {
+      return translate('Any');
     },
   },
 ];
@@ -360,6 +382,100 @@ function MediaManagement() {
                     />
                   </FormGroup>
                 ) : null}
+
+                <FormGroup
+                  advancedSettings={showAdvancedSettings}
+                  isAdvanced={true}
+                >
+                  <FormLabel>{translate('UserRejectedExtensions')}</FormLabel>
+
+                  <FormInputGroup
+                    type={inputTypes.TEXT}
+                    name="userRejectedExtensions"
+                    helpTexts={[
+                      translate('UserRejectedExtensionsHelpText'),
+                      translate('UserRejectedExtensionsTextsExamples'),
+                    ]}
+                    onChange={handleInputChange}
+                    {...settings.userRejectedExtensions}
+                  />
+                </FormGroup>
+
+                {showAdvancedSettings && (
+                  <>
+                    <FormGroup
+                      advancedSettings={showAdvancedSettings}
+                      isAdvanced={true}
+                      size={sizes.MEDIUM}
+                    >
+                      <FormLabel>
+                        {translate('SeasonPackUpgradeAllowLabel')}
+                      </FormLabel>
+                      <FormInputGroup
+                        type={inputTypes.SELECT}
+                        name="seasonPackUpgrade"
+                        helpText={translate('SeasonPackUpgradeAllowHelpText')}
+                        helpTextWarning={
+                          settings.seasonPackUpgrade.value === 'any'
+                            ? translate('SeasonPackUpgradeAllowAnyWarning')
+                            : undefined
+                        }
+                        values={seasonPackUpgradeOptions}
+                        onChange={handleInputChange}
+                        {...settings.seasonPackUpgrade}
+                      />
+                    </FormGroup>
+
+                    {settings.seasonPackUpgrade.value === 'threshold' && (
+                      <FormGroup
+                        advancedSettings={showAdvancedSettings}
+                        isAdvanced={true}
+                        size={sizes.MEDIUM}
+                      >
+                        <FormLabel>
+                          {translate('SeasonPackUpgradeThresholdLabel')}
+                        </FormLabel>
+                        <FormInputGroup
+                          type={inputTypes.FLOAT}
+                          name="seasonPackUpgradeThreshold"
+                          unit="%"
+                          step={0.01}
+                          min={0}
+                          max={100}
+                          helpTexts={[
+                            translate('SeasonPackUpgradeThresholdHelpText'),
+                            translate(
+                              'SeasonPackUpgradeThresholdHelpTextExample',
+                              {
+                                numberEpisodes: 2,
+                                totalEpisodes: 8,
+                                count: Math.ceil((100 * 2) / 8),
+                              }
+                            ),
+                            translate(
+                              'SeasonPackUpgradeThresholdHelpTextExample',
+                              {
+                                numberEpisodes: 3,
+                                totalEpisodes: 12,
+                                count: Math.ceil((100 * 3) / 12),
+                              }
+                            ),
+                            translate(
+                              'SeasonPackUpgradeThresholdHelpTextExample',
+                              {
+                                numberEpisodes: 6,
+                                totalEpisodes: 24,
+                                count: Math.ceil((100 * 6) / 24),
+                              }
+                            ),
+                          ]}
+                          onChange={handleInputChange}
+                          {...settings.seasonPackUpgradeThreshold}
+                        />
+                      </FormGroup>
+                    )}
+                  </>
+                )}
               </FieldSet>
             ) : null}
 

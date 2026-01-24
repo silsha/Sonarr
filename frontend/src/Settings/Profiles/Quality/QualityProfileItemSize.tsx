@@ -183,6 +183,7 @@ export default function QualityProfileItemSize({
         // @ts-ignore allowCross is still available in the version currently used
         allowCross={false}
         snapDragDisabled={true}
+        pearling={true}
         renderThumb={thumbRenderer}
         renderTrack={trackRenderer}
         onChange={handleSliderChange}
@@ -243,7 +244,7 @@ export default function QualityProfileItemSize({
             max={preferredSize ? preferredSize - 5 : MAX - 5}
             step={0.1}
             isFloat={true}
-            // @ts-expect-error - Typngs are too loose
+            // @ts-expect-error - Typings are too loose
             onChange={handleMinSizeChange}
           />
           <Label kind={kinds.INFO}>
@@ -261,7 +262,7 @@ export default function QualityProfileItemSize({
             max={maxSize ? maxSize - 5 : MAX - 5}
             step={0.1}
             isFloat={true}
-            // @ts-expect-error - Typngs are too loose
+            // @ts-expect-error - Typings are too loose
             onChange={handlePreferredSizeChange}
           />
 
@@ -280,7 +281,7 @@ export default function QualityProfileItemSize({
             max={MAX}
             step={0.1}
             isFloat={true}
-            // @ts-expect-error - Typngs are too loose
+            // @ts-expect-error - Typings are too loose
             onChange={handleMaxSizeChange}
           />
 

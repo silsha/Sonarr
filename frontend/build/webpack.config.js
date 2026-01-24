@@ -65,7 +65,7 @@ module.exports = (env) => {
 
     output: {
       path: distFolder,
-      publicPath: '/',
+      publicPath: 'auto',
       filename: isProduction ? '[name]-[contenthash].js' : '[name].js',
       sourceMapFilename: '[file].map'
     },
@@ -176,7 +176,7 @@ module.exports = (env) => {
                       loose: true,
                       debug: false,
                       useBuiltIns: 'entry',
-                      corejs: '3.39'
+                      corejs: '3.42'
                     }
                   ]
                 ]

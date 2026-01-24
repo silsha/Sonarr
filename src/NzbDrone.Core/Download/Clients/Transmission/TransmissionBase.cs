@@ -94,7 +94,7 @@ namespace NzbDrone.Core.Download.Clients.Transmission
                     {
                         item.RemainingTime = TimeSpan.FromSeconds(torrent.Eta);
                     }
-                    catch (OverflowException)
+                    catch (Exception ex) when (ex is OverflowException or ArgumentOutOfRangeException)
                     {
                         item.RemainingTime = TimeSpan.FromMilliseconds(torrent.Eta);
                     }
@@ -103,7 +103,11 @@ namespace NzbDrone.Core.Download.Clients.Transmission
                 if (!torrent.ErrorString.IsNullOrWhiteSpace())
                 {
                     item.Status = DownloadItemStatus.Warning;
-                    item.Message = torrent.ErrorString;
+                    item.Message = _localizationService.GetLocalizedString("DownloadClientItemErrorMessage", new Dictionary<string, object>
+                    {
+                        { "clientName", Name },
+                        { "message", torrent.ErrorString }
+                    });
                 }
                 else if (torrent.TotalSize == 0)
                 {

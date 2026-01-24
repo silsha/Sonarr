@@ -1,22 +1,22 @@
 import React, { FocusEvent, useCallback, useState } from 'react';
-import { useDispatch } from 'react-redux';
-import * as commandNames from 'Commands/commandNames';
+import CommandNames from 'Commands/CommandNames';
+import { useExecuteCommand } from 'Commands/useCommands';
 import FieldSet from 'Components/FieldSet';
 import FormGroup from 'Components/Form/FormGroup';
 import FormInputButton from 'Components/Form/FormInputButton';
 import FormInputGroup from 'Components/Form/FormInputGroup';
 import FormLabel from 'Components/Form/FormLabel';
+import { EnhancedSelectInputValue } from 'Components/Form/Select/EnhancedSelectInput';
 import Icon from 'Components/Icon';
 import ClipboardButton from 'Components/Link/ClipboardButton';
 import ConfirmModal from 'Components/Modal/ConfirmModal';
 import { icons, inputTypes, kinds } from 'Helpers/Props';
-import { executeCommand } from 'Store/Actions/commandActions';
 import { InputChanged } from 'typings/inputs';
 import { PendingSection } from 'typings/pending';
 import General from 'typings/Settings/General';
 import translate from 'Utilities/String/translate';
 
-export const authenticationMethodOptions = [
+export const authenticationMethodOptions: EnhancedSelectInputValue<string>[] = [
   {
     key: 'none',
     get value() {
@@ -36,6 +36,8 @@ export const authenticationMethodOptions = [
     get value() {
       return translate('AuthBasic');
     },
+    isDisabled: true,
+    isHidden: true,
   },
   {
     key: 'forms',
@@ -45,22 +47,23 @@ export const authenticationMethodOptions = [
   },
 ];
 
-export const authenticationRequiredOptions = [
-  {
-    key: 'enabled',
-    get value() {
-      return translate('Enabled');
+export const authenticationRequiredOptions: EnhancedSelectInputValue<string>[] =
+  [
+    {
+      key: 'enabled',
+      get value() {
+        return translate('Enabled');
+      },
     },
-  },
-  {
-    key: 'disabledForLocalAddresses',
-    get value() {
-      return translate('DisabledForLocalAddresses');
+    {
+      key: 'disabledForLocalAddresses',
+      get value() {
+        return translate('DisabledForLocalAddresses');
+      },
     },
-  },
-];
+  ];
 
-const certificateValidationOptions = [
+const certificateValidationOptions: EnhancedSelectInputValue<string>[] = [
   {
     key: 'enabled',
     get value() {
@@ -104,7 +107,7 @@ function SecuritySettings({
   isResettingApiKey,
   onInputChange,
 }: SecuritySettingsProps) {
-  const dispatch = useDispatch();
+  const executeCommand = useExecuteCommand();
 
   const [isConfirmApiKeyResetModalOpen, setIsConfirmApiKeyResetModalOpen] =
     useState(false);
@@ -123,14 +126,14 @@ function SecuritySettings({
   const handleConfirmResetApiKey = useCallback(() => {
     setIsConfirmApiKeyResetModalOpen(false);
 
-    dispatch(executeCommand({ name: commandNames.RESET_API_KEY }));
-  }, [dispatch]);
+    executeCommand({ name: CommandNames.ResetApiKey });
+  }, [executeCommand]);
 
   const handleCloseResetApiKeyModal = useCallback(() => {
     setIsConfirmApiKeyResetModalOpen(false);
   }, []);
 
-  // createCommandExecutingSelector(commandNames.RESET_API_KEY),
+  // createCommandExecutingSelector(CommandNames.RESET_API_KEY),
 
   const authenticationEnabled =
     authenticationMethod && authenticationMethod.value !== 'none';

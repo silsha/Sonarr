@@ -1,16 +1,18 @@
-import React from 'react';
+import React, { useCallback } from 'react';
+import { useSelect } from 'App/Select/SelectContext';
 import RelativeDateCell from 'Components/Table/Cells/RelativeDateCell';
 import TableRowCell from 'Components/Table/Cells/TableRowCell';
 import TableSelectCell from 'Components/Table/Cells/TableSelectCell';
 import Column from 'Components/Table/Column';
 import TableRow from 'Components/Table/TableRow';
+import Episode from 'Episode/Episode';
 import EpisodeSearchCell from 'Episode/EpisodeSearchCell';
 import EpisodeStatus from 'Episode/EpisodeStatus';
 import EpisodeTitleLink from 'Episode/EpisodeTitleLink';
 import SeasonEpisodeNumber from 'Episode/SeasonEpisodeNumber';
 import EpisodeFileLanguages from 'EpisodeFile/EpisodeFileLanguages';
 import SeriesTitleLink from 'Series/SeriesTitleLink';
-import useSeries from 'Series/useSeries';
+import { useSingleSeries } from 'Series/useSeries';
 import { SelectStateInputProps } from 'typings/props';
 import styles from './CutoffUnmetRow.css';
 
@@ -28,9 +30,7 @@ interface CutoffUnmetRowProps {
   airDateUtc?: string;
   lastSearchTime?: string;
   title: string;
-  isSelected?: boolean;
   columns: Column[];
-  onSelectedChange: (options: SelectStateInputProps) => void;
 }
 
 function CutoffUnmetRow({
@@ -47,11 +47,22 @@ function CutoffUnmetRow({
   airDateUtc,
   lastSearchTime,
   title,
-  isSelected,
   columns,
-  onSelectedChange,
 }: CutoffUnmetRowProps) {
-  const series = useSeries(seriesId);
+  const series = useSingleSeries(seriesId);
+  const { toggleSelected, useIsSelected } = useSelect<Episode>();
+  const isSelected = useIsSelected(id);
+
+  const handleSelectedChange = useCallback(
+    ({ id, value, shiftKey = false }: SelectStateInputProps) => {
+      toggleSelected({
+        id,
+        isSelected: value,
+        shiftKey,
+      });
+    },
+    [toggleSelected]
+  );
 
   if (!series || !episodeFileId) {
     return null;
@@ -62,7 +73,7 @@ function CutoffUnmetRow({
       <TableSelectCell
         id={id}
         isSelected={isSelected}
-        onSelectedChange={onSelectedChange}
+        onSelectedChange={handleSelectedChange}
       />
 
       {columns.map((column) => {

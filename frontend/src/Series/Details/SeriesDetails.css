@@ -5,7 +5,6 @@
 .header {
   position: relative;
   width: 100%;
-  height: 425px;
 }
 
 .backdrop {
@@ -30,20 +29,18 @@
   width: 100%;
   height: 100%;
   color: var(--white);
+  gap: 35px;
 }
 
 .poster {
   flex-shrink: 0;
-  margin-right: 35px;
   width: 250px;
   height: 368px;
 }
 
 .info {
-  display: flex;
-  flex-direction: column;
-  flex-grow: 1;
   overflow: hidden;
+  width: 100%;
 }
 
 .titleRow {
@@ -59,10 +56,14 @@
 }
 
 .title {
+  overflow: auto;
+  max-height: calc(3 * 60px);
   text-wrap: balance;
   font-weight: 300;
   font-size: 50px;
-  line-height: 50px;
+  line-height: 60px;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
 }
 
 .toggleMonitoredContainer {
@@ -82,6 +83,7 @@
 
 .alternateTitlesIconContainer {
   align-self: flex-end;
+  margin-bottom: 10px;
   margin-left: 20px;
 }
 
@@ -153,6 +155,13 @@
   padding: 20px;
 }
 
+.seriesProgressLabel {
+  composes: label from '~Components/Label.css';
+
+  margin: 0;
+  font-size: 17px;
+}
+
 @media only screen and (max-width: $breakpointSmall) {
   .contentContainer {
     padding: 20px 0;
@@ -163,6 +172,8 @@
   }
 
   .title {
+    overflow: hidden;
+    max-height: calc(3 * 30px);
     font-weight: 300;
     font-size: 30px;
     line-height: 30px;

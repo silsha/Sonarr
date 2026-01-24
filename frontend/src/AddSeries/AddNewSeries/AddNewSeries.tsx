@@ -1,7 +1,4 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { useSelector } from 'react-redux';
-import { AddSeries } from 'App/State/AddSeriesAppState';
-import AppState from 'App/State/AppState';
 import Alert from 'Components/Alert';
 import TextInput from 'Components/Form/TextInput';
 import Icon from 'Components/Icon';
@@ -10,23 +7,20 @@ import Link from 'Components/Link/Link';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
 import PageContent from 'Components/Page/PageContent';
 import PageContentBody from 'Components/Page/PageContentBody';
-import useApiQuery from 'Helpers/Hooks/useApiQuery';
 import useDebounce from 'Helpers/Hooks/useDebounce';
 import useQueryParams from 'Helpers/Hooks/useQueryParams';
 import { icons, kinds } from 'Helpers/Props';
+import { useHasSeries } from 'Series/useSeries';
 import { InputChanged } from 'typings/inputs';
 import getErrorMessage from 'Utilities/Object/getErrorMessage';
 import translate from 'Utilities/String/translate';
 import AddNewSeriesSearchResult from './AddNewSeriesSearchResult';
+import { useLookupSeries } from './useAddSeries';
 import styles from './AddNewSeries.css';
 
 function AddNewSeries() {
   const { term: initialTerm = '' } = useQueryParams<{ term: string }>();
-
-  const seriesCount = useSelector(
-    (state: AppState) => state.series.items.length
-  );
-
+  const hasSeries = useHasSeries();
   const [term, setTerm] = useState(initialTerm);
   const [isFetching, setIsFetching] = useState(false);
   const query = useDebounce(term, term ? 300 : 0);
@@ -44,16 +38,7 @@ function AddNewSeries() {
     setIsFetching(false);
   }, []);
 
-  const {
-    isFetching: isFetchingApi,
-    error,
-    data = [],
-  } = useApiQuery<AddSeries[]>({
-    path: `/series/lookup?term=${query}`,
-    queryOptions: {
-      enabled: !!query,
-    },
-  });
+  const { isFetching: isFetchingApi, error, data } = useLookupSeries(query);
 
   useEffect(() => {
     setIsFetching(isFetchingApi);
@@ -103,7 +88,9 @@ function AddNewSeries() {
         {!isFetching && !error && !!data.length ? (
           <div className={styles.searchResults}>
             {data.map((item) => {
-              return <AddNewSeriesSearchResult key={item.tvdbId} {...item} />;
+              return (
+                <AddNewSeriesSearchResult key={item.tvdbId} series={item} />
+              );
             })}
           </div>
         ) : null}
@@ -131,7 +118,7 @@ function AddNewSeries() {
           </div>
         )}
 
-        {!term && !seriesCount ? (
+        {!term && !hasSeries ? (
           <div className={styles.message}>
             <div className={styles.noSeriesText}>
               {translate('NoSeriesHaveBeenAdded')}

@@ -1,14 +1,13 @@
 import React, { useEffect } from 'react';
-import { useSelector } from 'react-redux';
 import { useHistory, useParams } from 'react-router';
 import NotFound from 'Components/NotFound';
 import usePrevious from 'Helpers/Hooks/usePrevious';
-import createAllSeriesSelector from 'Store/Selectors/createAllSeriesSelector';
+import useSeries from 'Series/useSeries';
 import translate from 'Utilities/String/translate';
 import SeriesDetails from './SeriesDetails';
 
 function SeriesDetailsPage() {
-  const allSeries = useSelector(createAllSeriesSelector());
+  const { data: allSeries } = useSeries();
   const { titleSlug } = useParams<{ titleSlug: string }>();
   const history = useHistory();
 
@@ -19,7 +18,11 @@ function SeriesDetailsPage() {
   const previousIndex = usePrevious(seriesIndex);
 
   useEffect(() => {
-    if (seriesIndex === -1 && previousIndex !== -1) {
+    if (
+      seriesIndex === -1 &&
+      previousIndex !== -1 &&
+      previousIndex !== undefined
+    ) {
       history.push(`${window.Sonarr.urlBase}/`);
     }
   }, [seriesIndex, previousIndex, history]);

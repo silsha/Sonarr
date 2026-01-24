@@ -11,18 +11,15 @@ import React, {
   useState,
 } from 'react';
 import Autosuggest from 'react-autosuggest';
-import { useDispatch, useSelector } from 'react-redux';
-import { createSelector } from 'reselect';
-import { Tag } from 'App/State/TagsAppState';
+import { useDispatch } from 'react-redux';
+import { useDebouncedCallback } from 'use-debounce';
 import Icon from 'Components/Icon';
 import LoadingIndicator from 'Components/Loading/LoadingIndicator';
-import useDebouncedCallback from 'Helpers/Hooks/useDebouncedCallback';
 import useKeyboardShortcuts from 'Helpers/Hooks/useKeyboardShortcuts';
 import { icons } from 'Helpers/Props';
 import Series from 'Series/Series';
-import createAllSeriesSelector from 'Store/Selectors/createAllSeriesSelector';
-import createDeepEqualSelector from 'Store/Selectors/createDeepEqualSelector';
-import createTagsSelector from 'Store/Selectors/createTagsSelector';
+import useSeries from 'Series/useSeries';
+import { Tag, useTagList } from 'Tags/useTags';
 import translate from 'Utilities/String/translate';
 import SeriesSearchResult from './SeriesSearchResult';
 import styles from './SeriesSearchInput.css';
@@ -70,60 +67,52 @@ interface Section {
   suggestions: SeriesSuggestion[] | AddNewSeriesSuggestion[];
 }
 
-function createUnoptimizedSelector() {
-  return createSelector(
-    createAllSeriesSelector(),
-    createTagsSelector(),
-    (allSeries, allTags) => {
-      return allSeries.map((series): SuggestedSeries => {
-        const {
-          title,
-          titleSlug,
-          sortTitle,
-          images,
-          alternateTitles = [],
-          tvdbId,
-          tvMazeId,
-          imdbId,
-          tmdbId,
-          tags = [],
-        } = series;
+function useSeriesSuggestions(tagList: Tag[]) {
+  const { data: allSeries = [] } = useSeries();
 
-        return {
-          title,
-          titleSlug,
-          sortTitle,
-          images,
-          alternateTitles,
-          tvdbId,
-          tvMazeId,
-          imdbId,
-          tmdbId,
-          firstCharacter: title.charAt(0).toLowerCase(),
-          tags: tags.reduce<Tag[]>((acc, id) => {
-            const matchingTag = allTags.find((tag) => tag.id === id);
+  return useMemo(() => {
+    return allSeries.map((series): SuggestedSeries => {
+      const {
+        title,
+        titleSlug,
+        sortTitle,
+        images,
+        alternateTitles = [],
+        tvdbId,
+        tvMazeId,
+        imdbId,
+        tmdbId,
+        tags = [],
+      } = series;
 
-            if (matchingTag) {
-              acc.push(matchingTag);
-            }
+      return {
+        title,
+        titleSlug,
+        sortTitle,
+        images,
+        alternateTitles,
+        tvdbId,
+        tvMazeId,
+        imdbId,
+        tmdbId,
+        firstCharacter: title.charAt(0).toLowerCase(),
+        tags: tags.reduce<Tag[]>((acc, id) => {
+          const matchingTag = tagList.find((tag) => tag.id === id);
 
-            return acc;
-          }, []),
-        };
-      });
-    }
-  );
-}
+          if (matchingTag) {
+            acc.push(matchingTag);
+          }
 
-function createSeriesSelector() {
-  return createDeepEqualSelector(
-    createUnoptimizedSelector(),
-    (series) => series
-  );
+          return acc;
+        }, []),
+      };
+    });
+  }, [allSeries, tagList]);
 }
 
 function SeriesSearchInput() {
-  const series = useSelector(createSeriesSelector());
+  const tagList = useTagList();
+  const series = useSeriesSuggestions(tagList);
   const dispatch = useDispatch();
   const { bindShortcut, unbindShortcut } = useKeyboardShortcuts();
 
@@ -300,6 +289,10 @@ function SeriesSearchInput() {
         return;
       }
 
+      if (!inputRef.current?.value) {
+        return;
+      }
+
       const { highlightedSectionIndex, highlightedSuggestionIndex } =
         autosuggestRef.current.state;
 
@@ -316,7 +309,7 @@ function SeriesSearchInput() {
         return;
       }
 
-      // If an suggestion is not selected go to the first series,
+      // If a suggestion is not selected go to the first series,
       // otherwise go to the selected series.
 
       const selectedSuggestion =

@@ -3,24 +3,18 @@ import {
   HubConnectionBuilder,
   LogLevel,
 } from '@microsoft/signalr';
+import { QueryKey, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
+import { setAppValue, setVersion } from 'App/appStore';
 import ModelBase from 'App/ModelBase';
-import AppState from 'App/State/AppState';
 import Command from 'Commands/Command';
-import { setAppValue, setVersion } from 'Store/Actions/appActions';
-import { removeItem, update, updateItem } from 'Store/Actions/baseActions';
-import {
-  fetchCommands,
-  finishCommand,
-  updateCommand,
-} from 'Store/Actions/commandActions';
-import { fetchQueue, fetchQueueDetails } from 'Store/Actions/queueActions';
-import { fetchRootFolders } from 'Store/Actions/rootFolderActions';
-import { fetchSeries } from 'Store/Actions/seriesActions';
-import { fetchQualityDefinitions } from 'Store/Actions/settingsActions';
-import { fetchHealth } from 'Store/Actions/systemActions';
-import { fetchTagDetails, fetchTags } from 'Store/Actions/tagActions';
+import { useUpdateCommand } from 'Commands/useCommands';
+import Episode from 'Episode/Episode';
+import { EpisodeFile } from 'EpisodeFile/EpisodeFile';
+import { PagedQueryResponse } from 'Helpers/Hooks/usePagedApiQuery';
+import Series from 'Series/Series';
+import { removeItem, updateItem } from 'Store/Actions/baseActions';
 import { repopulatePage } from 'Utilities/pagePopulator';
 import SignalRLogger from 'Utilities/SignalRLogger';
 
@@ -33,14 +27,13 @@ interface SignalRMessage {
     resource: ModelBase;
     version: string;
   };
+  version: number | undefined;
 }
 
 function SignalRListener() {
+  const queryClient = useQueryClient();
+  const updateCommand = useUpdateCommand();
   const dispatch = useDispatch();
-
-  const isQueuePopulated = useSelector(
-    (state: AppState) => state.queue.paged.isPopulated
-  );
 
   const connection = useRef<HubConnection | null>(null);
 
@@ -48,47 +41,43 @@ function SignalRListener() {
     console.error('[signalR] failed to connect');
     console.error(error);
 
-    dispatch(
-      setAppValue({
-        isConnected: false,
-        isReconnecting: false,
-        isDisconnected: false,
-        isRestarting: false,
-      })
-    );
+    setAppValue({
+      isConnected: false,
+      isReconnecting: false,
+      isDisconnected: false,
+      isRestarting: false,
+    });
   });
 
   const handleStart = useRef(() => {
     console.debug('[signalR] connected');
 
-    dispatch(
-      setAppValue({
-        isConnected: true,
-        isReconnecting: false,
-        isDisconnected: false,
-        isRestarting: false,
-      })
-    );
+    setAppValue({
+      isConnected: true,
+      isReconnecting: false,
+      isDisconnected: false,
+      isRestarting: false,
+    });
   });
 
   const handleReconnecting = useRef(() => {
-    dispatch(setAppValue({ isReconnecting: true }));
+    setAppValue({ isReconnecting: true });
   });
 
   const handleReconnected = useRef(() => {
-    dispatch(
-      setAppValue({
-        isConnected: true,
-        isReconnecting: false,
-        isDisconnected: false,
-        isRestarting: false,
-      })
-    );
+    setAppValue({
+      isConnected: true,
+      isReconnecting: false,
+      isDisconnected: false,
+      isRestarting: false,
+    });
 
     // Repopulate the page (if a repopulator is set) to ensure things
     // are in sync after reconnecting.
-    dispatch(fetchSeries());
-    dispatch(fetchCommands());
+    queryClient.invalidateQueries({ queryKey: ['/series'] });
+
+    queryClient.invalidateQueries({ queryKey: ['/command'] });
+
     repopulatePage();
   });
 
@@ -97,9 +86,14 @@ function SignalRListener() {
   });
 
   const handleReceiveMessage = useRef((message: SignalRMessage) => {
-    console.debug('[signalR] received', message.name, message.body);
+    console.debug(
+      `[signalR] received ${message.name}${
+        message.version ? ` v${message.version}` : ''
+      }`,
+      message.body
+    );
 
-    const { name, body } = message;
+    const { name, body, version = 0 } = message;
 
     if (name === 'calendar') {
       if (body.action === 'updated') {
@@ -116,21 +110,13 @@ function SignalRListener() {
 
     if (name === 'command') {
       if (body.action === 'sync') {
-        dispatch(fetchCommands());
+        queryClient.invalidateQueries({ queryKey: ['/command'] });
         return;
       }
 
       const resource = body.resource as Command;
-      const status = resource.status;
 
-      // Both successful and failed commands need to be
-      // completed, otherwise they spin until they time out.
-
-      if (status === 'completed' || status === 'failed') {
-        dispatch(finishCommand(resource));
-      } else {
-        dispatch(updateCommand(resource));
-      }
+      updateCommand(resource);
 
       return;
     }
@@ -148,13 +134,37 @@ function SignalRListener() {
     }
 
     if (name === 'episode') {
+      if (version < 5) {
+        return;
+      }
+
       if (body.action === 'updated') {
-        dispatch(
-          updateItem({
-            section: 'episodes',
-            updateOnly: true,
-            ...body.resource,
-          })
+        const updatedItem = body.resource as Episode;
+
+        queryClient.setQueriesData(
+          { queryKey: ['/episode'] },
+          (oldData: Episode[] | undefined) => {
+            if (!oldData) {
+              return oldData;
+            }
+
+            const itemIndex = oldData.findIndex(
+              (item) => item.id === updatedItem.id
+            );
+
+            // Don't add episode if not found
+            if (itemIndex === -1) {
+              return oldData;
+            }
+
+            return oldData.map((item) => {
+              if (item.id === updatedItem.id) {
+                return updatedItem;
+              }
+
+              return item;
+            });
+          }
         );
       }
 
@@ -162,15 +172,61 @@ function SignalRListener() {
     }
 
     if (name === 'episodefile') {
-      const section = 'episodeFiles';
+      if (version < 5) {
+        return;
+      }
 
       if (body.action === 'updated') {
-        dispatch(updateItem({ section, ...body.resource }));
+        const updatedItem = body.resource as EpisodeFile;
+
+        queryClient.setQueriesData(
+          { queryKey: ['/episodeFile'] },
+          (oldData: EpisodeFile[] | undefined) => {
+            if (!oldData) {
+              return oldData;
+            }
+
+            const itemIndex = oldData.findIndex(
+              (item) => item.id === updatedItem.id
+            );
+
+            // Add episode file to the end
+            if (itemIndex === -1) {
+              return [...oldData, updatedItem];
+            }
+
+            return oldData.map((item) => {
+              if (item.id === updatedItem.id) {
+                return updatedItem;
+              }
+
+              return item;
+            });
+          }
+        );
 
         // Repopulate the page to handle recently imported file
         repopulatePage('episodeFileUpdated');
       } else if (body.action === 'deleted') {
-        dispatch(removeItem({ section, id: body.resource.id }));
+        const id = body.resource.id;
+
+        queryClient.setQueriesData(
+          { queryKey: ['/episodeFile'] },
+          (oldData: EpisodeFile[] | undefined) => {
+            if (!oldData) {
+              return oldData;
+            }
+
+            const itemIndex = oldData.findIndex((item) => item.id === id);
+
+            // Add episode file to the end
+            if (itemIndex === -1) {
+              return oldData;
+            }
+
+            return oldData.filter((item) => item.id !== id);
+          }
+        );
 
         repopulatePage('episodeFileDeleted');
       }
@@ -179,7 +235,11 @@ function SignalRListener() {
     }
 
     if (name === 'health') {
-      dispatch(fetchHealth());
+      if (version < 5) {
+        return;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['/health'] });
       return;
     }
 
@@ -230,89 +290,156 @@ function SignalRListener() {
     }
 
     if (name === 'qualitydefinition') {
-      dispatch(fetchQualityDefinitions());
+      if (version < 5) {
+        return;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['/qualitydefinition'] });
       return;
     }
 
     if (name === 'queue') {
-      if (isQueuePopulated) {
-        dispatch(fetchQueue());
+      if (version < 5) {
+        return;
       }
 
+      queryClient.invalidateQueries({ queryKey: ['/queue'] });
       return;
     }
 
     if (name === 'queue/details') {
-      dispatch(fetchQueueDetails());
+      if (version < 5) {
+        return;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['/queue/details'] });
       return;
     }
 
     if (name === 'queue/status') {
-      dispatch(update({ section: 'queue.status', data: body.resource }));
+      if (version < 5) {
+        return;
+      }
+
+      const statusDetails = queryClient.getQueriesData({
+        queryKey: ['/queue/status'],
+      });
+
+      statusDetails.forEach(([queryKey]) => {
+        queryClient.setQueryData(queryKey, () => body.resource);
+      });
+
       return;
     }
 
     if (name === 'rootfolder') {
-      dispatch(fetchRootFolders());
+      if (version < 5) {
+        return;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['/rootFolder'] });
 
       return;
     }
 
     if (name === 'series') {
+      if (version < 5) {
+        return;
+      }
+
       if (body.action === 'updated') {
-        dispatch(updateItem({ section: 'series', ...body.resource }));
+        const updatedItem = body.resource as Series;
+
+        queryClient.setQueryData<Series[]>(
+          ['/series'],
+          (oldData: Series[] | undefined) => {
+            if (!oldData) {
+              return oldData;
+            }
+
+            return oldData.map((item) => {
+              if (item.id === updatedItem.id) {
+                return {
+                  ...item,
+                  ...updatedItem,
+                };
+              }
+
+              return item;
+            });
+          }
+        );
 
         repopulatePage('seriesUpdated');
       } else if (body.action === 'deleted') {
         dispatch(removeItem({ section: 'series', id: body.resource.id }));
+
+        queryClient.setQueriesData(
+          { queryKey: ['/series'] },
+          (oldData: Series[] | undefined) => {
+            if (!oldData) {
+              return oldData;
+            }
+
+            return oldData.filter((item) => {
+              return item.id !== body.resource.id;
+            });
+          }
+        );
       }
 
       return;
     }
 
     if (name === 'system/task') {
-      dispatch(fetchCommands());
+      if (version < 5) {
+        return;
+      }
+
+      queryClient.invalidateQueries({ queryKey: ['/system/task'] });
       return;
     }
 
     if (name === 'tag') {
-      if (body.action === 'sync') {
-        dispatch(fetchTags());
-        dispatch(fetchTagDetails());
+      if (version < 5 || body.action !== 'sync') {
+        return;
       }
+
+      queryClient.invalidateQueries({ queryKey: ['/tag'] });
+      queryClient.invalidateQueries({ queryKey: ['/tag/detail'] });
 
       return;
     }
 
     if (name === 'version') {
-      dispatch(setVersion({ version: body.version }));
+      setVersion({ version: body.version });
       return;
     }
 
     if (name === 'wanted/cutoff') {
-      if (body.action === 'updated') {
-        dispatch(
-          updateItem({
-            section: 'wanted.cutoffUnmet',
-            updateOnly: true,
-            ...body.resource,
-          })
-        );
+      if (version < 5 || body.action !== 'updated') {
+        return;
       }
+
+      updatePagedItem<Episode>(
+        queryClient,
+        ['/wanted/cutoff'],
+        body.resource as Episode
+      );
 
       return;
     }
 
     if (name === 'wanted/missing') {
-      if (body.action === 'updated') {
-        dispatch(
-          updateItem({
-            section: 'wanted.missing',
-            updateOnly: true,
-            ...body.resource,
-          })
-        );
+      if (version < 5 || body.action !== 'updated') {
+        return;
       }
+
+      updatePagedItem<Episode>(
+        queryClient,
+        ['/wanted/missing'],
+        body.resource as Episode
+      );
 
       return;
     }
@@ -333,7 +460,7 @@ function SignalRListener() {
       .withAutomaticReconnect({
         nextRetryDelayInMilliseconds: (retryContext) => {
           if (retryContext.elapsedMilliseconds > 180000) {
-            dispatch(setAppValue({ isDisconnected: true }));
+            setAppValue({ isDisconnected: true });
           }
           return Math.min(retryContext.previousRetryCount, 10) * 1000;
         },
@@ -360,3 +487,37 @@ function SignalRListener() {
 }
 
 export default SignalRListener;
+
+const updatePagedItem = <T extends ModelBase>(
+  queryClient: ReturnType<typeof useQueryClient>,
+  queryKey: QueryKey,
+  updatedItem: T
+) => {
+  queryClient.setQueriesData(
+    { queryKey },
+    (oldData: PagedQueryResponse<T> | undefined) => {
+      if (!oldData) {
+        return oldData;
+      }
+
+      const itemIndex = oldData.records.findIndex(
+        (item) => item.id === updatedItem.id
+      );
+
+      if (itemIndex === -1) {
+        return oldData;
+      }
+
+      return {
+        ...oldData,
+        records: oldData.records.map((item) => {
+          if (item.id === updatedItem.id) {
+            return updatedItem;
+          }
+
+          return item;
+        }),
+      };
+    }
+  );
+};

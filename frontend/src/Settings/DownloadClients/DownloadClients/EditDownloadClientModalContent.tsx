@@ -16,9 +16,9 @@ import ModalContent from 'Components/Modal/ModalContent';
 import ModalFooter from 'Components/Modal/ModalFooter';
 import ModalHeader from 'Components/Modal/ModalHeader';
 import usePrevious from 'Helpers/Hooks/usePrevious';
-import useShowAdvancedSettings from 'Helpers/Hooks/useShowAdvancedSettings';
 import { inputTypes, kinds, sizes } from 'Helpers/Props';
 import AdvancedSettingsButton from 'Settings/AdvancedSettingsButton';
+import { useShowAdvancedSettings } from 'Settings/advancedSettingsStore';
 import {
   saveDownloadClient,
   setDownloadClientFieldValue,
@@ -67,7 +67,6 @@ function EditDownloadClientModalContent({
     implementationName,
     name,
     enable,
-    protocol,
     priority,
     removeCompletedDownloads,
     removeFailedDownloads,
@@ -218,19 +217,17 @@ function EditDownloadClientModalContent({
                 />
               </FormGroup>
 
-              {protocol.value === 'torrent' ? null : (
-                <FormGroup>
-                  <FormLabel>{translate('RemoveFailed')}</FormLabel>
+              <FormGroup>
+                <FormLabel>{translate('RemoveFailed')}</FormLabel>
 
-                  <FormInputGroup
-                    type={inputTypes.CHECK}
-                    name="removeFailedDownloads"
-                    helpText={translate('RemoveFailedDownloadsHelpText')}
-                    {...removeFailedDownloads}
-                    onChange={handleInputChange}
-                  />
-                </FormGroup>
-              )}
+                <FormInputGroup
+                  type={inputTypes.CHECK}
+                  name="removeFailedDownloads"
+                  helpText={translate('RemoveFailedDownloadsHelpText')}
+                  {...removeFailedDownloads}
+                  onChange={handleInputChange}
+                />
+              </FormGroup>
             </FieldSet>
           </Form>
         ) : null}

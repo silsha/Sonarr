@@ -1,11 +1,10 @@
 import React from 'react';
-import { useSelector } from 'react-redux';
 import DescriptionList from 'Components/DescriptionList/DescriptionList';
 import DescriptionListItem from 'Components/DescriptionList/DescriptionListItem';
 import DescriptionListItemDescription from 'Components/DescriptionList/DescriptionListItemDescription';
 import DescriptionListItemTitle from 'Components/DescriptionList/DescriptionListItemTitle';
 import Link from 'Components/Link/Link';
-import createUISettingsSelector from 'Store/Selectors/createUISettingsSelector';
+import { useUiSettingsValues } from 'Settings/UI/useUiSettings';
 import {
   DownloadFailedHistory,
   DownloadFolderImportedHistory,
@@ -33,9 +32,7 @@ interface HistoryDetailsProps {
 function HistoryDetails(props: HistoryDetailsProps) {
   const { eventType, sourceTitle, data, downloadId } = props;
 
-  const { shortDateFormat, timeFormat } = useSelector(
-    createUISettingsSelector()
-  );
+  const { shortDateFormat, timeFormat } = useUiSettingsValues();
 
   if (eventType === 'grabbed') {
     const {
@@ -174,7 +171,7 @@ function HistoryDetails(props: HistoryDetailsProps) {
   }
 
   if (eventType === 'downloadFailed') {
-    const { message } = data as DownloadFailedHistory;
+    const { indexer, message, source } = data as DownloadFailedHistory;
 
     return (
       <DescriptionList>
@@ -188,8 +185,16 @@ function HistoryDetails(props: HistoryDetailsProps) {
           <DescriptionListItem title={translate('GrabId')} data={downloadId} />
         ) : null}
 
+        {indexer ? (
+          <DescriptionListItem title={translate('Indexer')} data={indexer} />
+        ) : null}
+
         {message ? (
           <DescriptionListItem title={translate('Message')} data={message} />
+        ) : null}
+
+        {source ? (
+          <DescriptionListItem title={translate('Source')} data={source} />
         ) : null}
       </DescriptionList>
     );

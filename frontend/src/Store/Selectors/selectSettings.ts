@@ -1,5 +1,6 @@
 import { cloneDeep } from 'lodash';
 import { Error } from 'App/State/AppSectionState';
+import { getValidationFailures as getValidationFailuresFromApiError } from 'Helpers/Hooks/useApiMutation';
 import Field from 'typings/Field';
 import {
   Failure,
@@ -10,15 +11,29 @@ import {
   ValidationFailure,
   ValidationWarning,
 } from 'typings/pending';
+import { ApiError } from 'Utilities/Fetch/fetchJson';
 import isEmpty from 'Utilities/Object/isEmpty';
 
-interface ValidationFailures {
+export interface ValidationFailures {
   errors: ValidationError[];
   warnings: ValidationWarning[];
 }
 
-function getValidationFailures(saveError?: Error): ValidationFailures {
-  if (!saveError || saveError.status !== 400) {
+export function getValidationFailures(
+  saveError?: ApiError | Error | null
+): ValidationFailures {
+  if (!saveError) {
+    return {
+      errors: [],
+      warnings: [],
+    };
+  }
+
+  if (saveError instanceof ApiError) {
+    return getValidationFailuresFromApiError(saveError);
+  }
+
+  if (saveError.status !== 400) {
     return {
       errors: [],
       warnings: [],
@@ -77,7 +92,7 @@ export interface ModelBaseSetting {
 function selectSettings<T extends ModelBaseSetting>(
   item: T,
   pendingChanges?: Partial<ModelBaseSetting>,
-  saveError?: Error
+  saveError?: ApiError | Error | null
 ) {
   const { errors, warnings } = getValidationFailures(saveError);
 
